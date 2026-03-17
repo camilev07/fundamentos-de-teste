@@ -1,64 +1,91 @@
-// Cenário de Utilização
-// Regra de Negócio: O aluno ganha XP por tarefa concluída.
-// Ao atingir 1000XP, ele sobe de nível. Tarefas entregues com atraso
-// rendem apenas 50% do XP. Existe um multiplicador de "Combo" para quem
-// entrega 3 tarefas seguidas no prazo.
-// cada tarefa vale 200xp
-interface IEntregarTarefa {
-    idAluno: number,
-    tarefa: ITarefa
+import { validar } from '../framework-teste'
+
+interface IUsuario {
+    id: number
+    nome: string
 }
 
-interface ITarefa {
+interface ILivro {
     id: number
     titulo: string
-    prazo: Date
 }
 
-const tarefasParaEntrega: ITarefa[] = [
-    { id: 1, titulo: 'Configurar ambiente do projeto', prazo: new Date('2026-03-05') },
-    { id: 2, titulo: 'Criar testes unitários de autenticação', prazo: new Date('2026-03-07') },
-    { id: 3, titulo: 'Implementar validação de formulário', prazo: new Date('2026-03-08') },
-    { id: 4, titulo: 'Refatorar módulo de cadastro', prazo: new Date('2026-03-10') },
-    { id: 5, titulo: 'Corrigir bug de cálculo de desconto', prazo: new Date('2026-03-12') },
-    { id: 6, titulo: 'Escrever documentação da API', prazo: new Date('2026-03-14') },
-    { id: 7, titulo: 'Adicionar testes de integração', prazo: new Date('2026-03-16') },
-    { id: 8, titulo: 'Otimizar consulta ao banco de dados', prazo: new Date('2026-03-18') },
-    { id: 9, titulo: 'Implementar tela de relatório', prazo: new Date('2026-03-20') },
-    { id: 10, titulo: 'Revisar e ajustar regras de negócio', prazo: new Date('2026-03-22') }
+interface IEmprestar {
+    usuario: IUsuario
+    livros: ILivro[]
+}
+
+// Sistema de Empréstimo de Livros
+// Requisitos:
+// 1. Prazo -> O empréstimo padrão é de 7 dias.
+// 2. Multa -> Se o livro for entregue com atraso, cobra-se uma multa fixa de R$5,00 + R$1,00 por dia de atraso.
+// 3. Limite -> Cada aluno pode pega no máximo 3 livros simultaneamente.
+// 4. Empréstimo -> O usuário deverá estar previamente cadastrado.
+
+const usuarios = [
+    {
+        id: 1,
+        nome: 'Daniel',
+    },
+    {
+        id: 2,
+        nome: 'Joel'
+    }
 ]
 
-let aluno = {
-    id: 110,
-    nome: 'Daniel',
-    xp: 0,
-    nivel: 0,
-    multiplicadorCombo: false
+const emprestar = ({ livros, usuario }: IEmprestar): boolean => {
+    const usuarioExiste = usuarios.filter(user => user.id === usuario.id)
+    if (!(usuarioExiste.length > 0)) return false
+    if (livros.length > 3) return false
+    return true
 }
 
-function entregarTarefa({ idAluno, tarefa }: IEntregarTarefa): boolean {
-    if (!idAluno || !tarefa) {
-        return false
+// Criar cenário de devolução
+// levar em consideração qe eu estou desenvolvendo realmente o que peguei
+// const devolver = idUnico do emprestimo) => {
+// Comparar se o id do emprestimo existe nos emprestimos do localStorage
+// Verificar se a data do emprestimo subtraia da data atual é menor ou igual a 7 dias
+// se data acima verificada for maior que 7 dias, (R$ 5,00 + ($diasDeAtraso * 1,00))
+//console.log com as informações de multa, caso exista.
+// se tudo der certo retorna verdadeiro
+
+validar({
+    descricao: 'emprestar() - Usuário previamente cadastrado e Quantidade de livros menor que o máximo',
+    esperado: true,
+    atual: emprestar({
+        usuario: { id: 1, nome: 'Daniel' },
+        livros: [
+            { id: 1, titulo: 'O Senhor dos Anéis - A Sociedade do Anel' },
+            { id: 2, titulo: 'O Senhor dos Anéis - As Duas Torres' },
+            { id: 3, titulo: 'O Senhor dos Anéis - O Retorno do Rei' },
+        ]
     }
-    let totalXp = true
-    const dataAtual = new Date();
-    if (tarefa.prazo < dataAtual) {
-        totalXp = false
+    )
+})
+validar({
+    descricao: 'emprestar() - Usuário previamente cadastrado e Quantidade de livros maior que o máximo',
+    esperado: false,
+    atual: emprestar({
+        usuario: { id: 1, nome: 'Daniel' },
+        livros: [
+            { id: 1, titulo: 'O Senhor dos Anéis - A Sociedade do Anel' },
+            { id: 2, titulo: 'O Senhor dos Anéis - As Duas Torres' },
+            { id: 3, titulo: 'O Senhor dos Anéis - O Retorno do Rei' },
+            { id: 4, titulo: 'O Hobbit' },
+        ]
     }
-
-    const xpRecebida = totalXp ? 200 : 100
-
-    aluno = { ...aluno, xp: aluno.xp + xpRecebida }
-
-    return true;
-}
-
-const tarefaSelecionada = tarefasParaEntrega[0]
-const entregaRealizada = entregarTarefa({ idAluno: aluno.id, tarefa: tarefaSelecionada })
-
-console.log('Entrega realizada:', entregaRealizada)
-console.log('Aluno atualizado:', aluno) 
-
-
-
-
+    )
+})
+validar({
+    descricao: 'emprestar() - Usuário não cadastrado e Quantidade de livros menor que o máximo',
+    esperado: false,
+    atual: emprestar({
+        usuario: { id: 10, nome: 'Daniel' },
+        livros: [
+            { id: 1, titulo: 'O Senhor dos Anéis - A Sociedade do Anel' },
+            { id: 2, titulo: 'O Senhor dos Anéis - As Duas Torres' },
+            { id: 3, titulo: 'O Senhor dos Anéis - O Retorno do Rei' },
+        ]
+    }
+    )
+})
